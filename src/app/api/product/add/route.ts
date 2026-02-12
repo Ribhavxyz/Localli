@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@src/lib/prisma";
-import { AuthError, verifyAuth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { getAuthContext, requireRole } from "@/lib/auth";
 
 type AddProductBody = {
   name: string;
@@ -19,7 +19,11 @@ function isAddProductBody(value: unknown): value is AddProductBody {
     return false;
   }
 
-  if (typeof body.price !== "number" || !Number.isFinite(body.price) || body.price <= 0) {
+  if (
+    typeof body.price !== "number" ||
+    !Number.isFinite(body.price) ||
+    body.price <= 0
+  ) {
     return false;
   }
 
@@ -36,12 +40,20 @@ function isAddProductBody(value: unknown): value is AddProductBody {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = verifyAuth(request);
+    const { auth, error } = getAuthContext(request);
+    if (error) return error;
 
-    if (auth.role !== "VENDOR") {
+    const roleError = requireRole(auth, "VENDOR");
+    if (roleError) return roleError;
+
+    const body: unknown = await request.json();
+    if (!isAddProductBody(body)) {
       return NextResponse.json(
-        { message: "Only vendors can add products" },
-        { status: 403 }
+        {
+          message:
+            "Invalid body. Required: name (string), price (>0), stock (>=0)",
+        },
+        { status: 400 }
       );
     }
 
@@ -57,17 +69,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body: unknown = await request.json();
-    if (!isAddProductBody(body)) {
-      return NextResponse.json(
-        {
-          message:
-            "Invalid body. Required: name (non-empty string), price (number > 0), stock (number >= 0)",
-        },
-        { status: 400 }
-      );
-    }
-
     const product = await prisma.product.create({
       data: {
         name: body.name.trim(),
@@ -78,12 +79,10 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(product, { status: 201 });
-  } catch (error: unknown) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ message: error.message }, { status: error.status });
-    }
-
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  } catch {
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
-
