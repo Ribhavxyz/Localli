@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
-import { getAuthContext } from "@/app/lib/auth";
-import { jsonError } from "@/app/lib/api";
+import { prisma } from "@/lib/prisma";
+import { getAuthContext } from "@/lib/auth";
+import { jsonError } from "@/lib/api";
 
 export async function GET(request: NextRequest) {
   const { auth, error } = getAuthContext(request);

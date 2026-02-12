@@ -1,72 +1,68 @@
+import { Role } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { jsonError } from "@/lib/api";
 
-export class AuthError extends Error {
-  readonly status: number;
-
-  constructor(message: string, status = 401) {
-    super(message);
-    this.name = "AuthError";
-    this.status = status;
-  }
-}
-
-export interface AuthPayload extends JwtPayload {
+type AuthPayload = {
   userId: number;
-  email?: string;
-  role?: "CUSTOMER" | "VENDOR";
+  role: Role;
+};
+
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is required");
 }
 
-function extractBearerToken(authorizationHeader: string | null): string {
-  if (!authorizationHeader) {
-    throw new AuthError("Authorization header is required");
-  }
-
-  const [scheme, token] = authorizationHeader.split(" ");
-  if (scheme !== "Bearer" || !token) {
-    throw new AuthError("Missing or malformed Bearer token");
-  }
-
-  return token;
+export function signToken(payload: AuthPayload) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
 }
 
-function parseVerifiedPayload(decoded: string | JwtPayload): AuthPayload {
-  if (typeof decoded === "string") {
-    throw new AuthError("Invalid token payload");
-  }
-
-  if (typeof decoded.userId !== "number") {
-    throw new AuthError("Invalid token payload");
-  }
-
-  const basePayload: AuthPayload = {
-    ...decoded,
-    userId: decoded.userId,
-  };
-
-  if (
-    basePayload.role !== undefined &&
-    basePayload.role !== "CUSTOMER" &&
-    basePayload.role !== "VENDOR"
-  ) {
-    throw new AuthError("Invalid token payload");
-  }
-
-  return basePayload;
-}
-
-export function verifyAuth(req: Request): AuthPayload {
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    throw new AuthError("JWT_SECRET is not configured", 500);
-  }
-
-  const token = extractBearerToken(req.headers.get("authorization"));
-
+function verifyToken(token: string): AuthPayload | null {
   try {
-    const decoded = jwt.verify(token, jwtSecret);
-    return parseVerifiedPayload(decoded);
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload & Partial<AuthPayload>;
+    if (
+      typeof decoded.userId !== "number" ||
+      (decoded.role !== "CUSTOMER" && decoded.role !== "VENDOR")
+    ) {
+      return null;
+    }
+
+    return {
+      userId: decoded.userId,
+      role: decoded.role,
+    };
   } catch {
-    throw new AuthError("Invalid or expired token");
+    return null;
   }
 }
+
+export function getAuthContext(
+  request: NextRequest
+): { auth: AuthPayload; error: null } | { auth: null; error: NextResponse } {
+  const header = request.headers.get("authorization");
+
+  if (!header || !header.startsWith("Bearer ")) {
+    return { auth: null, error: jsonError("Unauthorized", 401) };
+  }
+
+  const token = header.slice("Bearer ".length).trim();
+  const auth = verifyToken(token);
+
+  if (!auth) {
+    return { auth: null, error: jsonError("Invalid token", 401) };
+  }
+
+  return { auth, error: null };
+}
+
+export function requireRole(auth: AuthPayload, role: Role): NextResponse | null {
+  if (auth.role !== role) {
+    return jsonError("Forbidden", 403);
+  }
+
+  return null;
+}
+
+export type { AuthPayload };
 
