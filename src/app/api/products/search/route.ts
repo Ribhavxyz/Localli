@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { distanceKm } from "@/lib/geo";
+import { calculateClusterId } from "@/utils/cluster";
 
 type ProductSearchResult = {
   product: {
@@ -17,6 +18,8 @@ type ProductSearchResult = {
     lng: number;
   };
   distanceKm: number | null;
+  engagementScore: number;
+  finalScore?: number;
 };
 
 function parseOptionalNumber(value: string | null): number | null {
@@ -35,7 +38,7 @@ function parseOptionalNumber(value: string | null): number | null {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const q = searchParams.get("q")?.trim();
+    const q = searchParams.get("query")?.trim() ?? searchParams.get("q")?.trim();
     const lat = parseOptionalNumber(searchParams.get("lat"));
     const lng = parseOptionalNumber(searchParams.get("lng"));
     const radius = parseOptionalNumber(searchParams.get("radius"));
@@ -43,6 +46,7 @@ export async function GET(request: NextRequest) {
     const hasLat = lat !== null;
     const hasLng = lng !== null;
     const hasRadius = radius !== null;
+    const requestedClusterId = hasLat && hasLng ? calculateClusterId(lat, lng) : null;
 
     if (hasLat !== hasLng) {
       return NextResponse.json(
@@ -66,14 +70,23 @@ export async function GET(request: NextRequest) {
     }
 
     const products = await prisma.product.findMany({
-      where: q
-        ? {
+      where: {
+        ...(q
+          ? {
             name: {
               contains: q,
               mode: "insensitive",
             },
           }
-        : undefined,
+          : {}),
+        ...(requestedClusterId
+          ? {
+              store: {
+                clusterId: requestedClusterId,
+              },
+            }
+          : {}),
+      },
       select: {
         id: true,
         name: true,
@@ -92,7 +105,7 @@ export async function GET(request: NextRequest) {
       orderBy: { id: "desc" },
     });
 
-    const results: ProductSearchResult[] = products
+    const baseResults = products
       .map((item) => {
         const computedDistance =
           hasLat && hasLng ? distanceKm(lat, lng, item.store.lat, item.store.lng) : null;
@@ -111,7 +124,7 @@ export async function GET(request: NextRequest) {
             lat: item.store.lat,
             lng: item.store.lng,
           },
-          distanceKm: computedDistance,
+          distanceKm: computedDistance as number | null,
         };
       })
       .filter((item) => {
@@ -122,7 +135,67 @@ export async function GET(request: NextRequest) {
         return item.distanceKm !== null && item.distanceKm <= radius;
       });
 
-    return NextResponse.json(results, { status: 200 });
+    const productIds = baseResults.map((item) => item.product.id);
+    if (productIds.length === 0) {
+      return NextResponse.json({ products: [] }, { status: 200 });
+    }
+
+    const interactionRows = await prisma.interactionLog.groupBy({
+      by: ["productId", "action"],
+      where: {
+        productId: {
+          in: productIds,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    const scoreByProductId = new Map<number, number>();
+    for (const row of interactionRows) {
+      const current = scoreByProductId.get(row.productId) ?? 0;
+      let weight = 0;
+
+      if (row.action === "CLICK") {
+        weight = 1;
+      } else if (row.action === "ADD_TO_CART") {
+        weight = 3;
+      } else if (row.action === "PURCHASE") {
+        weight = 5;
+      }
+
+      scoreByProductId.set(row.productId, current + row._count._all * weight);
+    }
+
+    const rankedProducts: ProductSearchResult[] = baseResults
+      .map((item) => {
+        const engagementScore = scoreByProductId.get(item.product.id) ?? 0;
+
+        if (hasLat && hasLng && item.distanceKm !== null) {
+          const distanceBoost = 1 / (1 + item.distanceKm);
+          const finalScore = engagementScore * 5 + distanceBoost * 10;
+          return {
+            ...item,
+            engagementScore,
+            finalScore,
+          };
+        }
+
+        return {
+          ...item,
+          engagementScore,
+        };
+      })
+      .sort((a, b) => {
+        if (hasLat && hasLng) {
+          return (b.finalScore ?? -Infinity) - (a.finalScore ?? -Infinity);
+        }
+
+        return b.engagementScore - a.engagementScore;
+      });
+
+    return NextResponse.json({ products: rankedProducts }, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof Error && error.message === "Invalid number parameter") {
       return NextResponse.json(
@@ -134,4 +207,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }
-

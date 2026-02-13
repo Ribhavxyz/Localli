@@ -80,6 +80,16 @@ export async function POST(request: NextRequest) {
         data: { quantity: updatedQuantity },
       });
 
+      void prisma.interactionLog
+        .create({
+          data: {
+            userId: auth.userId,
+            productId: body.productId,
+            action: "ADD_TO_CART",
+          },
+        })
+        .catch(() => {});
+
       return NextResponse.json(updatedCartItem, { status: 200 });
     }
 
@@ -91,9 +101,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    void prisma.interactionLog
+      .create({
+        data: {
+          userId: auth.userId,
+          productId: body.productId,
+          action: "ADD_TO_CART",
+        },
+      })
+      .catch(() => {});
+
     return NextResponse.json(cartItem, { status: 201 });
   } catch {
     return NextResponse.json({ message: "Invalid request body" }, { status: 400 });
   }
 }
-

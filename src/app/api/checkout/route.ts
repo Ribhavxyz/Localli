@@ -116,6 +116,18 @@ export async function POST(request: NextRequest) {
       };
     });
 
+    for (const item of cartItems) {
+      void prisma.interactionLog
+        .create({
+          data: {
+            userId: auth.userId,
+            productId: item.productId,
+            action: "PURCHASE",
+          },
+        })
+        .catch(() => {});
+    }
+
     return NextResponse.json(order, { status: 201 });
   } catch (checkoutError: unknown) {
     if (

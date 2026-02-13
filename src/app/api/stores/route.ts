@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/api";
 import { distanceKm } from "@/lib/geo";
 import { getAuthContext, requireRole } from "@/lib/auth";
+import { calculateClusterId } from "@/utils/cluster";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -10,6 +11,28 @@ export async function GET(request: NextRequest) {
   const lat = Number(searchParams.get("lat"));
   const lng = Number(searchParams.get("lng"));
   const radiusKm = Number(searchParams.get("radiusKm") ?? 10);
+
+  if (query) {
+    let searchUserId: number | null = null;
+    const authHeader = request.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const authContext = getAuthContext(request);
+      if (authContext.auth) {
+        searchUserId = authContext.auth.userId;
+      }
+    }
+
+    void prisma.searchLog
+      .create({
+        data: {
+          query,
+          userId: searchUserId,
+        },
+      })
+      .catch(() => {
+        // Search logging must never block store search responses.
+      });
+  }
 
   const stores = await prisma.store.findMany({
     where: query
@@ -56,7 +79,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const name = String(body?.name ?? "").trim();
-    const description = body?.description ? String(body.description).trim() : null;
+    const description = body?.description
+      ? String(body.description).trim()
+      : null;
     const lat = Number(body?.lat);
     const lng = Number(body?.lng);
 
@@ -67,9 +92,13 @@ export async function POST(request: NextRequest) {
     const existingStore = await prisma.store.findUnique({
       where: { vendorId: auth.userId },
     });
+
     if (existingStore) {
       return jsonError("Vendor already has a store", 409);
     }
+
+    // 🧠 NEW: Calculate cluster
+    const clusterId = calculateClusterId(lat, lng);
 
     const store = await prisma.store.create({
       data: {
@@ -77,6 +106,7 @@ export async function POST(request: NextRequest) {
         description,
         lat,
         lng,
+        clusterId, // ✅ NEW FIELD
         vendorId: auth.userId,
       },
     });

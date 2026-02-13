@@ -7,7 +7,7 @@ type Params = {
   params: Promise<{ id: string }>;
 };
 
-export async function GET(_request: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
   const { id } = await params;
   const productId = Number(id);
   if (!Number.isInteger(productId)) {
@@ -21,6 +21,19 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
   if (!product) {
     return jsonError("Product not found", 404);
+  }
+
+  const { auth } = getAuthContext(request);
+  if (auth) {
+    void prisma.interactionLog
+      .create({
+        data: {
+          userId: auth.userId,
+          productId: product.id,
+          action: "CLICK",
+        },
+      })
+      .catch(() => {});
   }
 
   return NextResponse.json({ product });
@@ -116,4 +129,3 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   await prisma.product.delete({ where: { id: productId } });
   return NextResponse.json({ success: true });
 }
-
