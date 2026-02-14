@@ -1,0 +1,27 @@
+[00:00:02.043] Server  LOG     ✓ Ready in 1521ms
+[00:00:04.129] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:04.228] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:05.541] Server  LOG     prisma:query "SELECT \"public\".\"Store\".\"id\" FROM \"public\".\"Store\" WHERE (\"public\".\"Store\".\"vendorId\" = $1 AND 1=1) LIMIT $2 OFFSET $3"
+[00:00:05.573] Server  LOG     prisma:query "SELECT \"public\".\"Product\".\"id\", \"public\".\"Product\".\"name\", \"public\".\"Product\".\"price\", \"public\".\"Product\".\"stock\", \"public\".\"Product\".\"imageUrl\", \"public\".\"Product\".\"storeId\" FROM \"public\".\"Product\" WHERE \"public\".\"Product\".\"storeId\" = $1 ORDER BY \"public\".\"Product\".\"id\" DESC OFFSET $2"
+[00:00:05.626] Server  LOG     prisma:query "SELECT \"public\".\"Store\".\"id\" FROM \"public\".\"Store\" WHERE (\"public\".\"Store\".\"vendorId\" = $1 AND 1=1) LIMIT $2 OFFSET $3"
+[00:00:05.629] Server  LOG     prisma:query "SELECT \"public\".\"Product\".\"id\", \"public\".\"Product\".\"name\", \"public\".\"Product\".\"price\", \"public\".\"Product\".\"stock\", \"public\".\"Product\".\"imageUrl\", \"public\".\"Product\".\"storeId\" FROM \"public\".\"Product\" WHERE \"public\".\"Product\".\"storeId\" = $1 ORDER BY \"public\".\"Product\".\"id\" DESC OFFSET $2"
+[00:00:08.516] Server  WARN    Error: Route "/api/vendor/products/[id]" used `params.id`. `params` is a Promise and must be unwrapped with `await` or `React.use()` before accessing its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+[00:05:46.320] Server  LOG     ✓ Compiled in 4.8s
+[00:06:04.928] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:06:05.296] Server  LOG     prisma:query "SELECT \"public\".\"Store\".\"id\" FROM \"public\".\"Store\" WHERE (\"public\".\"Store\".\"vendorId\" = $1 AND 1=1) LIMIT $2 OFFSET $3"
+[00:06:05.302] Server  LOG     prisma:query "SELECT \"public\".\"Product\".\"id\", \"public\".\"Product\".\"name\", \"public\".\"Product\".\"price\", \"public\".\"Product\".\"stock\", \"public\".\"Product\".\"imageUrl\", \"public\".\"Product\".\"storeId\" FROM \"public\".\"Product\" WHERE \"public\".\"Product\".\"storeId\" = $1 ORDER BY \"public\".\"Product\".\"id\" DESC OFFSET $2"
+[00:06:05.324] Server  LOG     prisma:query "SELECT \"public\".\"Store\".\"id\" FROM \"public\".\"Store\" WHERE (\"public\".\"Store\".\"vendorId\" = $1 AND 1=1) LIMIT $2 OFFSET $3"
+[00:06:05.328] Server  LOG     prisma:query "SELECT \"public\".\"Product\".\"id\", \"public\".\"Product\".\"name\", \"public\".\"Product\".\"price\", \"public\".\"Product\".\"stock\", \"public\".\"Product\".\"imageUrl\", \"public\".\"Product\".\"storeId\" FROM \"public\".\"Product\" WHERE \"public\".\"Product\".\"storeId\" = $1 ORDER BY \"public\".\"Product\".\"id\" DESC OFFSET $2"
+[00:06:06.507] Server  LOG     prisma:query "SELECT \"public\".\"Store\".\"id\" FROM \"public\".\"Store\" WHERE (\"public\".\"Store\".\"vendorId\" = $1 AND 1=1) LIMIT $2 OFFSET $3"
+[00:06:06.513] Server  LOG     prisma:query "SELECT \"public\".\"Product\".\"id\", \"public\".\"Product\".\"name\", \"public\".\"Product\".\"price\", \"public\".\"Product\".\"stock\", \"public\".\"Product\".\"imageUrl\", \"public\".\"Product\".\"storeId\" FROM \"public\".\"Product\" WHERE (\"public\".\"Product\".\"id\" = $1 AND \"public\".\"Product\".\"storeId\" = $2) LIMIT $3 OFFSET $4"
+[00:06:06.546] Server  LOG     prisma:query "DELETE FROM \"public\".\"Product\" WHERE (\"public\".\"Product\".\"id\" = $1 AND 1=1) RETURNING \"public\".\"Product\".\"id\", \"public\".\"Product\".\"name\", \"public\".\"Product\".\"price\", \"public\".\"Product\".\"stock\", \"public\".\"Product\".\"imageUrl\", \"public\".\"Product\".\"storeId\""
+[00:06:06.709] Server  ERROR   ⨯ PrismaClientUnknownRequestError: 
+Invalid `{imported module ./src/lib/prisma.ts}["prisma"].product.delete()` invocation in
+C:\Users\Ribhav\OneDrive\Documents\Projects\Major project final\localli\.next-app\dev\server\chunks\[root-of-the-server]__98ed35ee._.js:239:154
+
+  236         status: 404
+  237     });
+  238 }
+→ 239 await {imported module ./src/lib/prisma.ts}["prisma"].product.delete(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "23001", message: "update or delete on table \"Product\" violates RESTRICT setting of foreign key constraint \"InteractionLog_productId_fkey\" on table \"InteractionLog\"", severity: "ERROR", detail: Some("Key (id)=(25) is referenced from table \"InteractionLog\"."), column: None, hint: None }), transient: false })

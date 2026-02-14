@@ -45,6 +45,7 @@ model Product {
   name    String
   price   Float
   stock   Int
+  imageUrl String?
   storeId Int
   store   Store  @relation(fields: [storeId], references: [id])
 
@@ -116,4 +117,5 @@ model OrderItem {
 enum Role {
   CUSTOMER
   VENDOR
+  ADMIN
 }

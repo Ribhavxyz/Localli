@@ -3,13 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/api";
 import { getAuthContext, requireRole } from "@/lib/auth";
 
-type Params = {
-  params: Promise<{ id: string }>;
+type RouteParams = {
+  params: { id: string };
 };
 
-export async function GET(request: NextRequest, { params }: Params) {
-  const { id } = await params;
-  const productId = Number(id);
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  const rawId = params.id;
+  const productId = Number(rawId);
   if (!Number.isInteger(productId)) {
     return jsonError("Invalid product id", 400);
   }
@@ -39,9 +39,9 @@ export async function GET(request: NextRequest, { params }: Params) {
   return NextResponse.json({ product });
 }
 
-export async function PATCH(request: NextRequest, { params }: Params) {
-  const { id } = await params;
-  const productId = Number(id);
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const rawId = params.id;
+  const productId = Number(rawId);
   if (!Number.isInteger(productId)) {
     return jsonError("Invalid product id", 400);
   }
@@ -97,9 +97,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: Params) {
-  const { id } = await params;
-  const productId = Number(id);
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const rawId = params.id;
+  const productId = Number(rawId);
   if (!Number.isInteger(productId)) {
     return jsonError("Invalid product id", 400);
   }

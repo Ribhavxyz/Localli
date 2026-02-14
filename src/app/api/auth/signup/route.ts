@@ -7,7 +7,7 @@ type SignupBody = {
   name?: string;
   email?: string;
   password?: string;
-  role?: "CUSTOMER" | "VENDOR";
+  role?: "CUSTOMER" | "VENDOR" | "ADMIN";
 };
 
 export async function POST(request: NextRequest) {
@@ -23,6 +23,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { message: "name, email, password, and role are required" },
         { status: 400 }
+      );
+    }
+
+    if (role === "ADMIN") {
+      return NextResponse.json(
+        { message: "ADMIN signup is disabled. Use seed or admin-only route." },
+        { status: 403 }
       );
     }
 
@@ -65,4 +72,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Invalid request body" }, { status: 400 });
   }
 }
-

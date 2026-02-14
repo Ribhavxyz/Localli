@@ -3,13 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { getAuthContext, requireRole } from "@/lib/auth";
 import { jsonError } from "@/lib/api";
 
-type Params = {
-  params: Promise<{ id: string }>;
+type RouteParams = {
+  params: { id: string };
 };
 
-export async function GET(_request: NextRequest, { params }: Params) {
-  const { id } = await params;
-  const storeId = Number(id);
+export async function GET(_request: NextRequest, { params }: RouteParams) {
+  const rawId = params.id;
+  const storeId = Number(rawId);
   if (!Number.isInteger(storeId)) {
     return jsonError("Invalid store id", 400);
   }
@@ -29,9 +29,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
   return NextResponse.json({ store });
 }
 
-export async function PATCH(request: NextRequest, { params }: Params) {
-  const { id } = await params;
-  const storeId = Number(id);
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const rawId = params.id;
+  const storeId = Number(rawId);
   if (!Number.isInteger(storeId)) {
     return jsonError("Invalid store id", 400);
   }
@@ -86,9 +86,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: Params) {
-  const { id } = await params;
-  const storeId = Number(id);
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const rawId = params.id;
+  const storeId = Number(rawId);
   if (!Number.isInteger(storeId)) {
     return jsonError("Invalid store id", 400);
   }
@@ -115,4 +115,3 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   await prisma.store.delete({ where: { id: storeId } });
   return NextResponse.json({ success: true });
 }
-

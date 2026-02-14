@@ -8,6 +8,13 @@ type TopProduct = {
   totalPurchases: number;
 };
 
+type CategorySales = {
+  category: string;
+  revenue: number;
+  unitsSold: number;
+  orders: number;
+};
+
 type VendorAnalyticsResponse = {
   totalProducts: number;
   totalClicks: number;
@@ -15,7 +22,20 @@ type VendorAnalyticsResponse = {
   totalPurchases: number;
   totalRevenue: number;
   topProducts: TopProduct[];
+  categorySales: CategorySales[];
 };
+
+function deriveCategory(productName: string): string {
+  const value = productName.toLowerCase();
+  if (value.includes("bread") || value.includes("bake")) return "Bakery";
+  if (value.includes("egg") || value.includes("milk") || value.includes("cheese"))
+    return "Dairy";
+  if (value.includes("coffee") || value.includes("drink") || value.includes("tea"))
+    return "Beverages";
+  if (value.includes("fruit") || value.includes("vegetable") || value.includes("avocado"))
+    return "Produce";
+  return "General";
+}
 
 export async function GET(request: NextRequest) {
   const { auth, error } = getAuthContext(request);
@@ -54,6 +74,7 @@ export async function GET(request: NextRequest) {
         totalPurchases: 0,
         totalRevenue: 0,
         topProducts: [],
+        categorySales: [],
       };
 
       return NextResponse.json(emptyResponse, { status: 200 });
@@ -126,6 +147,7 @@ export async function GET(request: NextRequest) {
       totalPurchases,
       totalRevenue,
       topProducts,
+      categorySales: buildCategorySales(orderItems, productNameById),
     };
 
     return NextResponse.json(response, { status: 200 });
@@ -137,3 +159,32 @@ export async function GET(request: NextRequest) {
   }
 }
 
+function buildCategorySales(
+  orderItems: Array<{ productId: number; price: number; quantity: number }>,
+  productNameById: Map<number, string>
+): CategorySales[] {
+  const categoryMap = new Map<string, CategorySales>();
+
+  for (const item of orderItems) {
+    const productName = productNameById.get(item.productId) ?? "";
+    const category = deriveCategory(productName);
+    const current = categoryMap.get(category) ?? {
+      category,
+      revenue: 0,
+      unitsSold: 0,
+      orders: 0,
+    };
+
+    current.revenue += item.price * item.quantity;
+    current.unitsSold += item.quantity;
+    current.orders += 1;
+    categoryMap.set(category, current);
+  }
+
+  return Array.from(categoryMap.values())
+    .map((entry) => ({
+      ...entry,
+      revenue: Number(entry.revenue.toFixed(2)),
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
+}

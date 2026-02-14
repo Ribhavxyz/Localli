@@ -1,0 +1,6 @@
+{
+  "/api/vendor/products/[id]/route": "app/api/vendor/products/[id]/route.js",
+  "/api/vendor/products/route": "app/api/vendor/products/route.js",
+  "/login/page": "app/login/page.js",
+  "/vendor/products/page": "app/vendor/products/page.js"
+}

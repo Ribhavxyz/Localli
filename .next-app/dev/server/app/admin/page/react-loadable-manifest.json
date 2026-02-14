@@ -1,0 +1,10 @@
+{
+  "[project]/src/components/dashboard/map/ClusterHeatmap.tsx [app-client] (ecmascript, next/dynamic entry)": {
+    "id": "[project]/src/components/dashboard/map/ClusterHeatmap.tsx [app-client] (ecmascript, next/dynamic entry)",
+    "files": [
+      "static/chunks/node_modules_5ab42a01._.js",
+      "static/chunks/src_components_dashboard_map_ClusterHeatmap_tsx_fb7f7256._.js",
+      "static/chunks/src_components_dashboard_map_ClusterHeatmap_tsx_224ccd8d._.js"
+    ]
+  }
+}

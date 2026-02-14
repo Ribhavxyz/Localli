@@ -8,22 +8,30 @@ type AuthPayload = {
   role: Role;
 };
 
-const JWT_SECRET = process.env.JWT_SECRET;
+export function signToken(payload: AuthPayload) {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET is required");
+  }
 
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET is required");
+  return jwt.sign(payload, jwtSecret, { expiresIn: "7d" });
 }
 
-export function signToken(payload: AuthPayload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+function getJwtSecret() {
+  return process.env.JWT_SECRET ?? null;
 }
 
 function verifyToken(token: string): AuthPayload | null {
+  const jwtSecret = getJwtSecret();
+  if (!jwtSecret) {
+    return null;
+  }
+
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload & Partial<AuthPayload>;
+    const decoded = jwt.verify(token, jwtSecret) as JwtPayload & Partial<AuthPayload>;
     if (
       typeof decoded.userId !== "number" ||
-      (decoded.role !== "CUSTOMER" && decoded.role !== "VENDOR")
+      (decoded.role !== "CUSTOMER" && decoded.role !== "VENDOR" && decoded.role !== "ADMIN")
     ) {
       return null;
     }
@@ -64,5 +72,12 @@ export function requireRole(auth: AuthPayload, role: Role): NextResponse | null 
   return null;
 }
 
-export type { AuthPayload };
+export function requireAnyRole(auth: AuthPayload, roles: Role[]): NextResponse | null {
+  if (!roles.includes(auth.role)) {
+    return jsonError("Forbidden", 403);
+  }
 
+  return null;
+}
+
+export type { AuthPayload };

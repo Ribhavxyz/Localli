@@ -7,12 +7,20 @@ type ClusterMetrics = {
   previousDemandScore: number;
   growthRate: number;
   isSurging: boolean;
+  latitude: number;
+  longitude: number;
 };
 
 type ClusterAccumulator = {
   totalPurchases: number;
   totalCartAdds: number;
   totalRevenue: number;
+};
+
+type GeoAccumulator = {
+  latSum: number;
+  lngSum: number;
+  count: number;
 };
 
 function computeDemandScore(values: ClusterAccumulator): number {
@@ -62,6 +70,8 @@ export async function GET(request: NextRequest) {
                 store: {
                   select: {
                     clusterId: true,
+                    lat: true,
+                    lng: true,
                   },
                 },
               },
@@ -85,6 +95,8 @@ export async function GET(request: NextRequest) {
                 store: {
                   select: {
                     clusterId: true,
+                    lat: true,
+                    lng: true,
                   },
                 },
               },
@@ -108,6 +120,8 @@ export async function GET(request: NextRequest) {
                 store: {
                   select: {
                     clusterId: true,
+                    lat: true,
+                    lng: true,
                   },
                 },
               },
@@ -131,6 +145,8 @@ export async function GET(request: NextRequest) {
                 store: {
                   select: {
                     clusterId: true,
+                    lat: true,
+                    lng: true,
                   },
                 },
               },
@@ -141,9 +157,12 @@ export async function GET(request: NextRequest) {
 
     const currentClusterMap = new Map<string, ClusterAccumulator>();
     const previousClusterMap = new Map<string, ClusterAccumulator>();
+    const clusterGeoMap = new Map<string, GeoAccumulator>();
 
     for (const interaction of currentInteractions) {
       const clusterId = interaction.product.store.clusterId;
+      const lat = interaction.product.store.lat;
+      const lng = interaction.product.store.lng;
       const values = currentClusterMap.get(clusterId) ?? {
         totalPurchases: 0,
         totalCartAdds: 0,
@@ -157,10 +176,23 @@ export async function GET(request: NextRequest) {
       }
 
       currentClusterMap.set(clusterId, values);
+
+      const geo = clusterGeoMap.get(clusterId) ?? {
+        latSum: 0,
+        lngSum: 0,
+        count: 0,
+      };
+
+      geo.latSum += lat ?? 0;
+      geo.lngSum += lng ?? 0;
+      geo.count += 1;
+      clusterGeoMap.set(clusterId, geo);
     }
 
     for (const orderItem of currentOrderItems) {
       const clusterId = orderItem.product.store.clusterId;
+      const lat = orderItem.product.store.lat;
+      const lng = orderItem.product.store.lng;
       const values = currentClusterMap.get(clusterId) ?? {
         totalPurchases: 0,
         totalCartAdds: 0,
@@ -169,6 +201,17 @@ export async function GET(request: NextRequest) {
 
       values.totalRevenue += orderItem.price * orderItem.quantity;
       currentClusterMap.set(clusterId, values);
+
+      const geo = clusterGeoMap.get(clusterId) ?? {
+        latSum: 0,
+        lngSum: 0,
+        count: 0,
+      };
+
+      geo.latSum += lat ?? 0;
+      geo.lngSum += lng ?? 0;
+      geo.count += 1;
+      clusterGeoMap.set(clusterId, geo);
     }
 
     for (const interaction of previousInteractions) {
@@ -229,6 +272,9 @@ export async function GET(request: NextRequest) {
         }
 
         const isSurging = growthRate >= 50 && currentDemandScore >= 20;
+        const geo = clusterGeoMap.get(clusterId);
+        const latitude = geo && geo.count > 0 ? geo.latSum / geo.count : 0;
+        const longitude = geo && geo.count > 0 ? geo.lngSum / geo.count : 0;
 
         return {
           clusterId,
@@ -236,6 +282,8 @@ export async function GET(request: NextRequest) {
           previousDemandScore,
           growthRate,
           isSurging,
+          latitude,
+          longitude,
         };
       })
       .sort((a, b) => {

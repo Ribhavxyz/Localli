@@ -1,0 +1,3 @@
+module.exports=[89531,a=>{"use strict";var b=a.i(87924),c=a.i(72131),d=a.i(50944),e=a.i(32636);function f({children:a,requiredRole:f}){let g=(0,d.useRouter)(),{loading:h,token:i,userRole:j}=(0,e.useAuth)();return((0,c.useEffect)(()=>{if(!h){if(!i)return void g.replace("/login");f&&j!==f&&g.replace("/")}},[h,f,g,i,j]),h)?(0,b.jsx)("div",{className:"flex min-h-screen items-center justify-center bg-[#0A0A0A] text-zinc-300",children:"Loading..."}):!i||f&&j!==f?null:(0,b.jsx)(b.Fragment,{children:a})}a.s(["default",()=>f])}];
+
+//# sourceMappingURL=src_components_ProtectedRoute_tsx_c4ccc74b._.js.map
